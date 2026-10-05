@@ -1,0 +1,367 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity BP is
+    port(
+        reset, clock : in std_logic;
+        vsync, hsync : out std_logic;
+        R, G, B : out std_logic_vector(3 downto 0);
+        dht11_data : inout std_logic := 'Z';
+		  ds18_data : inout std_logic := 'Z'
+    );
+end BP;
+
+architecture Behavioral of BP is
+
+	-- VGA text position
+	constant pos_text1_v : integer := 0;
+	constant pos_text2_v : integer := 3;
+	constant pos_text1_h : integer := 0;
+	constant pos_text2_h : integer := 0;
+
+    -- VGA Signals
+    signal display_interval : std_logic;
+    signal h_pos, v_pos : integer := 0;
+
+    -- 25 MHz Clock
+    signal sig_25MHz : std_logic;
+	 signal sig_1MHz : std_logic;
+
+    -- ROM Signals
+    signal rom_data_dht : std_logic_vector(7 downto 0);
+	 signal rom_data_ds : std_logic_vector(7 downto 0);
+    signal addresing_rom_dht : std_logic_vector(4 downto 0);
+	 signal addresing_rom_ds : std_logic_vector(4 downto 0);
+	 
+    -- DHT11 Signals
+    signal humidity : std_logic_vector(7 downto 0);
+    signal temperature : std_logic_vector(7 downto 0);
+    signal humidity_synch : std_logic_vector(7 downto 0);  
+    signal temperature_synch : std_logic_vector(7 downto 0);  
+	 signal last_temp_dht : std_logic_vector(7 downto 0);
+	 signal last_hum_dht : std_logic_vector(7 downto 0);
+	 signal temp_diff : std_logic;
+	 signal hum_diff : std_logic;
+	 
+	 --DS18B20 Signals
+	 signal ds18_data_out : std_logic_vector(11 downto 0);
+	 signal ds18b20_synch : std_logic_vector(11 downto 0);
+	 signal last_temp_ds : std_logic_vector(11 downto 0);
+	 signal data_diff : std_logic;
+
+    -- Framebuffer: 8 řádků × 256 pixelů
+    type framebuffer_type is array (0 to 7, 0 to 255) of std_logic;
+    signal framebuffer_dht : framebuffer_type := (others => (others => '0'));
+	 signal framebuffer_ds : framebuffer_type := (others => (others => '0'));
+
+	 -- Procedura Zapis
+		procedure ZapisFramebuffer(
+			 signal framebuffer : inout framebuffer_type;
+			 signal rom_data : in std_logic_vector(7 downto 0);
+			 variable row_counter_var : in integer;
+			 variable char_x : in integer
+		) is
+		begin
+                framebuffer(row_counter_var, char_x * 8 + 0) <= rom_data(7); -- Plneni virtualniho monitoru
+                framebuffer(row_counter_var, char_x * 8 + 1) <= rom_data(6);
+                framebuffer(row_counter_var, char_x * 8 + 2) <= rom_data(5);
+                framebuffer(row_counter_var, char_x * 8 + 3) <= rom_data(4);
+                framebuffer(row_counter_var, char_x * 8 + 4) <= rom_data(3);
+                framebuffer(row_counter_var, char_x * 8 + 5) <= rom_data(2);
+                framebuffer(row_counter_var, char_x * 8 + 6) <= rom_data(1);
+                framebuffer(row_counter_var, char_x * 8 + 7) <= rom_data(0);
+		end procedure;
+		
+	  -- Procedura vypis barvy
+		procedure BarvaVGA(
+			 signal v_pos, h_pos : in integer;
+			 signal framebuffer : in framebuffer_type; 
+			 signal R, G, B: out std_logic_vector(3 downto 0);
+			 signal data_diff : in std_logic
+		) is
+		begin
+				  if framebuffer(v_pos,h_pos) = '1' then
+						if data_diff = '1' then
+							R <= (others => '1');
+							G <= (others => '0');
+							B <= (others => '0');
+						else
+							R <= (others => '0');
+							G <= (others => '0');
+							B <= (others => '1');
+						end if;
+				  else
+						R <= (others => '0');
+						G <= (others => '0');
+						B <= (others => '0');
+				  end if;
+		end procedure;
+
+
+    -- Komponenty
+    component vga_controller is
+        port(
+            reset, clock : in std_logic;
+            vsync, hsync : out std_logic;
+            h_pos, v_pos : out integer;
+            display_interval : out std_logic
+        );
+    end component;
+
+    component pll_25MHz is
+        port(
+            inclk0 : in std_logic := '0';
+            c0     : out std_logic
+        );
+    end component;
+	 
+	 component pll_1MHz
+			port(
+				inclk0 : IN STD_LOGIC := '0';
+				c0 : OUT STD_LOGIC
+			);
+    end component;
+
+    component rom is
+        port (
+            clock : in std_logic;
+            reset : in std_logic;
+				addr_dht : in std_logic_vector (4 downto 0);
+				addr_ds : in std_logic_vector (4 downto 0);
+            data_dht : out std_logic_vector(7 downto 0);
+				data_ds : out std_logic_vector(7 downto 0)
+        );
+    end component;
+
+    component data_to_text_dht is
+        port(
+            clock           : in std_logic;
+            reset           : in std_logic;
+            humidity_data   : in std_logic_vector(7 downto 0);  
+            temperature_data: in std_logic_vector(7 downto 0);  
+            addr_out        : out std_logic_vector(4 downto 0)
+        );
+    end component;
+	 
+	 component data_to_text_ds is
+        port(
+            clock           : in std_logic;
+            reset           : in std_logic;
+				data : in std_logic_vector(11 downto 0); 
+            addr_out        : out std_logic_vector(4 downto 0)
+        );
+    end component;
+	 
+	 component synch_reg_dht is
+		port (clock1,clock2, reset : in std_logic;
+				temp_dht1, hum_dht1 : in std_logic_vector(7 downto 0);
+				temp_dht2, hum_dht2 : out std_logic_vector(7 downto 0);
+				temp_diff, hum_diff : out std_logic
+				);
+		end component;
+	 
+	 component synch_reg_ds is
+		port (clock1,clock2, reset : in std_logic;
+				data_ds1 : in std_logic_vector(11 downto 0);
+				data_ds2 : out std_logic_vector(11 downto 0);
+				data_diff : out std_logic
+				);
+	end component;
+
+    component dht11_controller is
+        port(
+            clock           : in std_logic;
+            data            : inout std_logic;
+            humidity_out    : out std_logic_vector(7 downto 0); 
+            temperature_out : out std_logic_vector(7 downto 0)
+        );
+    end component;
+	 
+	 component ds18b20_controller is
+			port 
+			(
+			clock   	: in  std_logic;
+			data   : inout std_logic;
+			data_out	: out std_logic_vector(11 downto 0)
+			);
+	 end component;
+	 
+begin
+
+    -- VGA kontroler Instance
+    vga_controller_inst : vga_controller
+        port map(
+            reset => reset,
+            clock => sig_25MHz,
+            vsync => vsync,
+            hsync => hsync,
+            h_pos => h_pos,
+            v_pos => v_pos,
+            display_interval => display_interval
+        );
+
+    -- PLL 25 MHz Instance 
+    pll_25MHz_inst : pll_25MHz
+        port map(
+            inclk0 => clock, 
+            c0 => sig_25MHz
+        );
+	 -- PLL 1 MHz Instance 
+	 pll_inst: pll_1MHz
+		 port map (
+			  inclk0 => clock, -- Vstupní hodiny
+			 c0     => sig_1MHz         -- Výstupní hodiny 1 MHz
+    );
+
+    -- ROM Instance
+    rom_inst : rom
+        port map(
+            clock => sig_25MHz,
+            reset => reset,
+            addr_dht => addresing_rom_dht,
+				addr_ds => addresing_rom_ds,
+            data_dht => rom_data_dht,
+				data_ds => rom_data_ds
+        );
+
+		-- Data do textu pro DS18B20 Instance
+	  data_to_text_ds_inst : data_to_text_ds
+        port map(
+            clock => sig_25MHz,
+            reset => reset,
+		      data => ds18b20_synch,
+            addr_out => addresing_rom_ds
+        );
+	 -- SYNCH REG DS18B20 Instance  
+	 synch_reg_ds_inst : synch_reg_ds 
+		port map(
+				clock1 => sig_1MHz,
+				clock2 => sig_25MHz,
+				reset => reset,
+				data_ds1 => ds18_data_out,
+				data_ds2 => ds18b20_synch,
+				data_diff => data_diff 
+		);
+		
+	    -- Data do textu pro DHT11 Instance
+    data_to_text_dht_inst : data_to_text_dht
+        port map(
+            clock => sig_25MHz,
+            reset => reset,
+            humidity_data => humidity_synch,
+            temperature_data => temperature_synch,
+            addr_out => addresing_rom_dht
+        );
+		  
+	 -- SYNCH REG DHT11 Instance 
+	 synch_reg_dht_inst : synch_reg_dht 
+		port map(
+				clock1 => sig_1MHz,
+				clock2 => sig_25MHz,
+				reset => reset,
+				temp_dht1 => temperature,
+				hum_dht1 => humidity,
+				temp_dht2 => temperature_synch,
+				hum_dht2 => humidity_synch,
+				temp_diff => temp_diff,
+				hum_diff => hum_diff
+		);
+
+    -- DHT11 kontroler Instance
+    dht11_inst : dht11_controller
+        port map(
+            clock => sig_1MHz,
+				--reset => reset,
+            data => dht11_data,
+            humidity_out => humidity,
+            temperature_out => temperature
+        );
+		  
+	 -- DS18b20 kontroler Instance
+	 ds18b20_inst : ds18b20_controller
+		port map(
+			   clock => sig_1MHz,
+            --reset => reset,
+				data => ds18_data,
+				data_out => ds18_data_out
+		);
+
+	-- Framebuffer zapis
+	process(sig_25MHz)
+		 variable row_counter_var : integer range 0 to 7 := 0; 
+		 variable char_x : integer range 0 to 32 := 0;
+	begin
+		 if rising_edge(sig_25MHz) then
+			  if reset = '0' then
+					framebuffer_dht <= (others => (others => '0'));
+					framebuffer_ds <= (others => (others => '0'));
+					char_x := 0;
+					row_counter_var := 0; 
+			  else
+		
+						ZapisFramebuffer(framebuffer_dht, rom_data_dht, row_counter_var, char_x);
+						
+						ZapisFramebuffer(framebuffer_ds, rom_data_ds, row_counter_var, char_x);
+
+						 if row_counter_var = 7 then -- Pocitani pro spravne pozice x,y ve virtualnim monitoru
+							  row_counter_var := 0; 
+							  if char_x = 31 then
+									char_x := 0;
+							  else
+									char_x := char_x + 1;
+							  end if;
+						 else
+							  row_counter_var := row_counter_var + 1;
+						 end if;
+			  end if;
+		 end if;
+	end process;
+
+-- VGA cteni a zobrazeni
+	process(sig_25MHz)
+		 begin
+			if rising_edge(sig_25MHz) then
+				if reset = '0' then
+					 R <= (others => '0');
+					 G <= (others => '0');
+					 B <= (others => '0');
+				else
+				
+				if display_interval = '1' then
+						 
+						-- umisteni textu, deleni 8 kvuli velikosti znaku
+						 
+						if v_pos/8 = pos_text1_v and
+							  h_pos/8 >= pos_text1_h and h_pos/8 < pos_text1_h+16 then -- pricteni 16 pro umisteni textu
+							 
+							  BarvaVGA(v_pos, h_pos, framebuffer_dht, R, G, B, temp_diff);
+
+						elsif v_pos/8 = pos_text1_v and 
+							 h_pos/8 >= pos_text1_h+16 and h_pos/8 < pos_text1_h+32 then
+
+							  BarvaVGA(v_pos, h_pos, framebuffer_dht, R, G, B, hum_diff);
+							  
+						 elsif v_pos/8 = pos_text2_v and
+								 h_pos/8 >= pos_text2_h and h_pos/8 < pos_text2_h+16 then
+								 
+							  BarvaVGA(v_pos, h_pos, framebuffer_ds, R, G, B, data_diff);
+							  
+						 else
+							  -- Pokud neni zadny framebuffer aktivní
+							  R <= (others => '0');
+							  G <= (others => '0');
+							  B <= (others => '0');
+						 end if;
+						 
+					else
+						 -- Mimo display_interval
+						 R <= (others => '0');
+						 G <= (others => '0');
+						 B <= (others => '0');
+					end if;
+			end if;
+	  end if;
+	end process;
+
+end Behavioral;

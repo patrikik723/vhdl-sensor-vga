@@ -1,0 +1,18 @@
+Fitter Status : Successful - Mon Jan 12 12:04:51 2026
+Quartus Prime Version : 17.1.0 Build 590 10/25/2017 SJ Lite Edition
+Revision Name : BP
+Top-level Entity Name : BP
+Family : MAX 10
+Device : 10M50DAF484C6GES
+Timing Models : Preliminary
+Total logic elements : 5,058 / 49,760 ( 10 % )
+    Total combinational functions : 4,271 / 49,760 ( 9 % )
+    Dedicated logic registers : 3,420 / 49,760 ( 7 % )
+Total registers : 3420
+Total pins : 18 / 360 ( 5 % )
+Total virtual pins : 0
+Total memory bits : 0 / 1,677,312 ( 0 % )
+Embedded Multiplier 9-bit elements : 0 / 288 ( 0 % )
+Total PLLs : 2 / 4 ( 50 % )
+UFM blocks : 0 / 1 ( 0 % )
+ADC blocks : 0 / 2 ( 0 % )

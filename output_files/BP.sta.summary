@@ -1,0 +1,125 @@
+------------------------------------------------------------
+TimeQuest Timing Analyzer Summary
+------------------------------------------------------------
+
+Type  : Slow 1200mV 85C Model Setup 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -10.355
+TNS   : -81.549
+
+Type  : Slow 1200mV 85C Model Setup 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : -2.734
+TNS   : -82.944
+
+Type  : Slow 1200mV 85C Model Setup 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 988.328
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.324
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.326
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : 0.546
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : -1.222
+TNS   : -39.104
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'clock'
+Slack : 9.724
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 19.725
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 499.722
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Setup 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -8.844
+TNS   : -69.625
+
+Type  : Slow 1200mV 0C Model Setup 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : -2.418
+TNS   : -73.472
+
+Type  : Slow 1200mV 0C Model Setup 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 989.357
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.294
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.295
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : 0.502
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : -1.222
+TNS   : -39.104
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'clock'
+Slack : 9.758
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 19.706
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 499.712
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Setup 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -4.521
+TNS   : -35.587
+
+Type  : Fast 1200mV 0C Model Setup 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : -0.734
+TNS   : -21.424
+
+Type  : Fast 1200mV 0C Model Setup 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 994.475
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.130
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.148
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : 0.245
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'vga_controller:vga_controller_inst|counter:h_citac|prenos'
+Slack : -1.000
+TNS   : -32.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'clock'
+Slack : 9.524
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'pll_25MHz_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 19.755
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'pll_inst|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 499.779
+TNS   : 0.000
+
+------------------------------------------------------------

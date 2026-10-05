@@ -1,0 +1,19 @@
+
+State Machine - |BP|ds18b20_controller:ds18b20_inst|current_state
+Name current_state.CONVERT_DELAY current_state.READ_SCRATCHPAD current_state.CONVERT_T current_state.SKIP_ROM current_state.READ_TIMESLOT current_state.SEND_COMMAND current_state.RESET current_state.DELAY 
+current_state.DELAY 0 0 0 0 0 0 0 0 
+current_state.RESET 0 0 0 0 0 0 1 1 
+current_state.SEND_COMMAND 0 0 0 0 0 1 0 1 
+current_state.READ_TIMESLOT 0 0 0 0 1 0 0 1 
+current_state.SKIP_ROM 0 0 0 1 0 0 0 1 
+current_state.CONVERT_T 0 0 1 0 0 0 0 1 
+current_state.READ_SCRATCHPAD 0 1 0 0 0 0 0 1 
+current_state.CONVERT_DELAY 1 0 0 0 0 0 0 1 
+
+State Machine - |BP|dht11_controller:dht11_inst|current_state
+Name current_state.FINISH current_state.DATA_SEND current_state.SLAVE_RESPONSE current_state.HOST_START current_state.DELAY 
+current_state.DELAY 0 0 0 0 0 
+current_state.HOST_START 0 0 0 1 1 
+current_state.SLAVE_RESPONSE 0 0 1 0 1 
+current_state.DATA_SEND 0 1 0 0 1 
+current_state.FINISH 1 0 0 0 1 

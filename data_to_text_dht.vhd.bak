@@ -1,0 +1,182 @@
+--LAST UPDATE : UPRAVENI HUM A TEMP NA 8 BIT SIGNAL
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity data_to_text_dht is
+    port (
+        clock           : in std_logic;
+        reset           : in std_logic;
+        humidity_data   : in std_logic_vector(7 downto 0);  -- Vlhkost
+        temperature_data: in std_logic_vector(7 downto 0);  -- Teplota
+        addr_out        : out std_logic_vector(4 downto 0)  -- Adresa pro ROM
+        --debug_counter   : out integer range 0 to 31; -- Debug: Aktuální čítač znaků
+        --debug_row       : out integer range 0 to 7 -- Debug: Aktuální řádek čítače
+    );
+end data_to_text_dht;
+
+architecture Behavioral of data_to_text_dht is
+
+    -- Definice ASCII konstant pro znaky
+    constant ASCII_T       : std_logic_vector(4 downto 0) := "00000"; -- 'T'
+    constant ASCII_E       : std_logic_vector(4 downto 0) := "00001"; -- 'E'
+    constant ASCII_P       : std_logic_vector(4 downto 0) := "00010"; -- 'P'
+    constant ASCII_L       : std_logic_vector(4 downto 0) := "00011"; -- 'L'
+    constant ASCII_O       : std_logic_vector(4 downto 0) := "00100"; -- 'O'
+    constant ASCII_A       : std_logic_vector(4 downto 0) := "00101"; -- 'A'
+    constant ASCII_DEGREE  : std_logic_vector(4 downto 0) := "00110"; -- '°'
+    constant ASCII_C       : std_logic_vector(4 downto 0) := "00111"; -- 'C'
+    constant ASCII_V       : std_logic_vector(4 downto 0) := "01000"; -- 'V'
+    constant ASCII_H       : std_logic_vector(4 downto 0) := "01001"; -- 'H'
+    constant ASCII_K       : std_logic_vector(4 downto 0) := "01010"; -- 'K'
+    constant ASCII_S       : std_logic_vector(4 downto 0) := "01011"; -- 'S'
+    constant ASCII_PERCENT : std_logic_vector(4 downto 0) := "01100"; -- '%'
+    constant ASCII_0       : std_logic_vector(4 downto 0) := "01101"; -- '0'
+    constant ASCII_1       : std_logic_vector(4 downto 0) := "01110"; -- '1'
+    constant ASCII_2       : std_logic_vector(4 downto 0) := "01111"; -- '2'
+    constant ASCII_3       : std_logic_vector(4 downto 0) := "10000"; -- '3'
+    constant ASCII_4       : std_logic_vector(4 downto 0) := "10001"; -- '4'
+    constant ASCII_5       : std_logic_vector(4 downto 0) := "10010"; -- '5'
+    constant ASCII_6       : std_logic_vector(4 downto 0) := "10011"; -- '6'
+    constant ASCII_7       : std_logic_vector(4 downto 0) := "10100"; -- '7'
+    constant ASCII_8       : std_logic_vector(4 downto 0) := "10101"; -- '8'
+    constant ASCII_9       : std_logic_vector(4 downto 0) := "10110"; -- '9'
+    constant ASCII_SPACE   : std_logic_vector(4 downto 0) := "10111"; -- ' '
+    constant ASCII_COMMA   : std_logic_vector(4 downto 0) := "11000"; -- ','
+		
+    function digit_to_ascii(digit : integer range 0 to 9) return std_logic_vector is
+    begin
+        case digit is
+            when 0 => return ASCII_0;
+            when 1 => return ASCII_1;
+            when 2 => return ASCII_2;
+            when 3 => return ASCII_3;
+            when 4 => return ASCII_4;
+            when 5 => return ASCII_5;
+            when 6 => return ASCII_6;
+            when 7 => return ASCII_7;
+            when 8 => return ASCII_8;
+            when 9 => return ASCII_9;
+            when others => return ASCII_SPACE;
+        end case;
+    end function;
+
+
+    -- Signály
+    signal char_counter : integer range 0 to 31 := 0; -- Čítač znaků
+    signal row_counter  : integer range 0 to 7 := 7; -- Čítač řádků
+    signal temp_data    : integer := 0; -- Celá část teploty
+    signal hum_data     : integer := 0; -- Celá část vlhkosti
+
+begin
+
+    process(clock)
+		variable temp_data_var : integer range 0 to 50; -- max teplota pro DHT11 je 50
+		variable temp_frac_var : integer range 0 to 99;
+		variable hum_data_var : integer range 0 to 90; --max vlhkost 
+		variable hum_frac_var : integer range 0 to 99;
+		
+		variable temp_data_dig1 : integer range 0 to 9;
+		variable temp_data_dig2 : integer range 0 to 9; 	
+
+		
+		variable hum_data_dig1 : integer range 0 to 9;
+		variable hum_data_dig2 : integer range 0 to 9; 	
+		
+		variable first_char : std_logic := '0';
+		
+		
+    begin
+        if rising_edge(clock) then
+            if reset = '0' then
+                -- Reset všech hodnot
+                char_counter <= 0;
+                row_counter <= 7;
+                addr_out <= ASCII_SPACE;
+                temp_data <= 0;
+                hum_data <= 0;
+
+            else
+					 
+					 
+					 temp_data_var := to_integer(unsigned(temperature_data));
+					 hum_data_var := to_integer(unsigned(humidity_data));
+					 
+					 temp_data_dig1 := temp_data_var / 10;
+					 temp_data_dig2 := temp_data_var mod 10;
+					 
+					 hum_data_dig1 := hum_data_var / 10;
+					 hum_data_dig2 := hum_data_var mod 10;
+					 	 
+					
+                   -- aby se znak poslal jednou za 8 radku
+                    if row_counter = 7 then
+                        row_counter <= 0;
+
+							  -- vybrani a poslani adresy
+							  case char_counter is
+									-- "TEPLOTA "
+									when 0 => addr_out <= ASCII_T;
+									when 1 => addr_out <= ASCII_E;
+									when 2 => addr_out <= ASCII_P;
+									when 3 => addr_out <= ASCII_L;
+									when 4 => addr_out <= ASCII_O;
+									when 5 => addr_out <= ASCII_T;
+									when 6 => addr_out <= ASCII_A;
+									when 7 => addr_out <= ASCII_SPACE;
+
+									-- Čísla teploty
+									when 8 => addr_out <= digit_to_ascii(temp_data_dig1); --std_logic_vector(to_unsigned(temp_data / 10, 5)); -- První číslice
+									when 9 => addr_out <= digit_to_ascii(temp_data_dig2); -- Druhá číslice
+									when 10 => addr_out <= ASCII_COMMA; -- Čárka
+									when 11 => addr_out <= ASCII_0; -- DHT rozlisuje 1,0 stupen
+									when 12 => addr_out <= ASCII_0; 
+									when 13 => addr_out <= ASCII_SPACE; 
+									when 14 => addr_out <= ASCII_DEGREE; 
+									when 15 => addr_out <= ASCII_C;
+									when 16 => addr_out <= ASCII_SPACE;
+
+									-- "VLHKOST "
+									when 17 => addr_out <= ASCII_V;
+									when 18 => addr_out <= ASCII_L;
+									when 19 => addr_out <= ASCII_H;
+									when 20 => addr_out <= ASCII_K;
+									when 21 => addr_out <= ASCII_O;
+									when 22 => addr_out <= ASCII_S;
+									when 23 => addr_out <= ASCII_T;
+									when 24 => addr_out <= ASCII_SPACE;
+
+									-- Čísla vlhkosti
+									when 25 => addr_out <= digit_to_ascii(hum_data_dig1); -- První číslice
+									when 26 => addr_out <= digit_to_ascii(hum_data_dig2); -- Druhá číslice
+									when 27 => addr_out <= ASCII_COMMA; -- Čárka
+									when 28 => addr_out <= ASCII_0; -- DHT rozlisuje 1 stupen vlhkosti
+									when 29 => addr_out <= ASCII_0; -- 
+									when 30 => addr_out <= ASCII_SPACE; -- Mezera před procentem
+									when 31 => addr_out <= ASCII_PERCENT; -- '%'
+
+									when others => addr_out <= ASCII_SPACE;
+							  end case;
+
+							  -- citac pro znaky
+									if char_counter = 32 then
+										 char_counter <= 0;
+									else
+										 char_counter <= char_counter + 1;
+									end if;
+
+                    
+						  
+						  else
+                        row_counter <= row_counter + 1;
+                    end if;
+                end if;
+            end if;
+    end process;
+
+    -- Debug výstupy
+    --debug_counter <= char_counter;
+    --debug_row <= row_counter;
+
+end Behavioral;
